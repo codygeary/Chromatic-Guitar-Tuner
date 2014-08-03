@@ -2,7 +2,7 @@
  *    Guitar Tuner
  *
  *    Cody Geary
- *    15 July 2014
+ *    ~2014
  *
  *   -Displays red and blue waves that align when you play the right note
  *   -Shows a small FFT spectrum plot, peaks are each 4% away from the target note
@@ -33,13 +33,20 @@ String[][] Names = {
 {"5","A5","A#5/Bb5","B5","C6","C#6/Db6","D6","D#6/Eb6","E6","F6","F#6/Gb6","G6","G#6/Ab6"},
 {"6","A6","A#6/Bb6","B6","C7","C#7/Db7","D7","D#7/Eb7","E7","F7","F#7/Gb7","G7","G#7/Ab7"}};
 
-int num_scales=6;  //total number of octaves or scales in the array, this time 6
 
-float Buffer[] = new float [18192];   //buffer size set very large to prevent overflow... (not graceful, I know)
-float AvgBuffer[] = new float[18192];
+//float[][] Scales = {      //limited scale, optionally makes tuning more simple..
+//         {9, 61.74, 73.416, 82.407, 110.00, 146.83, 185.00, 196.00, 246.94, 329.63}};  //(0) Guitar tunings
+//         
+//String[][] Names = {
+//         {"Guitar Tuning"       , "B", "D", "E", "A", "D", "F#", "G", "B", "E"}};
+
+int num_scales=6;
+
+float Buffer[] = new float [28192];   //buffer size very large to prevent overflow...
+float AvgBuffer[] = new float[28192];
 float freqmax = 0; int [] freqhit = {0,0}; float freqpeak=0; //variables for choosing the note
 
-boolean mute=true;  //toggles if we mute the display, ie when it's just background noise.
+boolean mute=true;
 
 void setup()
 {
@@ -81,13 +88,13 @@ void draw()
   fill(255,255,255);
 
   for (int j=0; j<num_scales; j++) {                                //<-Loop through the Scales
-     scale_select=j;
+     scale_select=num_scales-j-1;
 
      for (int n=0; n<num_strings; n++) {                   //<-this loop cycles through each string
-          freq = Scales[scale_select][n+1];                //<-pick the frequency of the string from the scale array
+          freq = Scales[scale_select][n+1]/2;                //<-pick the frequency of the string from the scale array,  FFT needs a 2X modifier!
           
           if (freq>106){ fftLin = new FFT( 8192, 22050 ); }  //for higher frequencies use the high frequency spectrum
-          else         { fftLin = new FFT( 8192, 22050 ); }  //for frequencies 200Hz or lower use the low frequency spectrum, but now set to be both the same though   
+          else         { fftLin = new FFT( 8192, 22050 ); }  //for frequencies 200Hz or lower use the low frequency spectrum   
           fftLin.forward(in.mix);     
 
       //find the strongest FFT signal in the current buffer
@@ -109,10 +116,16 @@ void draw()
   }
 
   space=250; //how far from the top to draw the graph
-     freq = Scales[freqhit[0]][freqhit[1]];                  //<-pick the frequency of the string from the scale array
+     freq = Scales[freqhit[0]][freqhit[1]]/2;                  //<-pick the frequency of the string from the scale array
 
-     textSize(60);
-     if (!mute) {text(Names[freqhit[0]][freqhit[1]], 80, 80);}         //<-pick the name of the string to display on the screen
+
+     if (!mute) {
+       textSize(60);
+       text(Names[freqhit[0]][freqhit[1]], 80, 80);
+       textSize(20);
+       text(Scales[freqhit[0]][freqhit[1]] + " Hz", 120, 120);
+       
+     }         //<-pick the name of the string to display on the screen
      
      delay = round(44100/freq);   interval = delay*(2);   viewscale = (wide)/interval; 
      
@@ -127,10 +140,12 @@ void draw()
          
      
      if (freq>106){ fftLin = new FFT( 8192, 22050 ); }  //for higher frequencies use the high frequency spectrum
-     else         { fftLin = new FFT( 8192, 22050 ); }  //for frequencies 200Hz or lower use the low frequency spectrum, but here set to be the same always   
+     else         { fftLin = new FFT( 8192, 22050 ); }  //for frequencies 200Hz or lower use the low frequency spectrum   
      fftLin.forward(in.mix);      //draw the FFT spectrum analysis with bars every 2%
      strokeWeight(4); stroke(150,150,150);
-     int startfreq = 4*width/5 + width/10; float eqscale=0.25;
+     int startfreq = 4*width/5 + width/10;
+     float eqscale=20/fftLin.getFreq(freq);
+     //float eqscale=25;
      line(startfreq,    space, startfreq,    space-fftLin.getFreq(freq*.76)*eqscale);
      line(startfreq+5,  space, startfreq+5,  space-fftLin.getFreq(freq*.79)*eqscale);
      line(startfreq+10, space, startfreq+10, space-fftLin.getFreq(freq*.82)*eqscale);
@@ -143,22 +158,22 @@ void draw()
      stroke(255,255,255);   //make the center frequency bright white
      line(startfreq+40, space, startfreq+40, space-fftLin.getFreq(freq)*eqscale); 
      stroke(150,150,150);
-     
-     line(startfreq+45, space, startfreq+45, space-fftLin.getFreq(freq*1.03)*eqscale);
-     line(startfreq+50, space, startfreq+50, space-fftLin.getFreq(freq*1.06)*eqscale);  
-     line(startfreq+55, space, startfreq+55, space-fftLin.getFreq(freq*1.09)*eqscale); 
-     line(startfreq+60, space, startfreq+60, space-fftLin.getFreq(freq*1.12)*eqscale);
-     line(startfreq+65, space, startfreq+65, space-fftLin.getFreq(freq*1.15)*eqscale);
-     line(startfreq+70, space, startfreq+70, space-fftLin.getFreq(freq*1.18)*eqscale);  
-     line(startfreq+75, space, startfreq+75, space-fftLin.getFreq(freq*1.21)*eqscale); 
-     line(startfreq+80, space, startfreq+80, space-fftLin.getFreq(freq*1.25)*eqscale);
+     float skew=.0035;
+     line(startfreq+45, space, startfreq+45, space-fftLin.getFreq(freq*1.03+freq*skew)*eqscale);
+     line(startfreq+50, space, startfreq+50, space-fftLin.getFreq(freq*1.06+freq*skew)*eqscale);  
+     line(startfreq+55, space, startfreq+55, space-fftLin.getFreq(freq*1.09+freq*skew)*eqscale); 
+     line(startfreq+60, space, startfreq+60, space-fftLin.getFreq(freq*1.12+freq*skew)*eqscale);
+     line(startfreq+65, space, startfreq+65, space-fftLin.getFreq(freq*1.15+freq*skew)*eqscale);
+     line(startfreq+70, space, startfreq+70, space-fftLin.getFreq(freq*1.18+freq*skew)*eqscale);  
+     line(startfreq+75, space, startfreq+75, space-fftLin.getFreq(freq*1.21+freq*skew)*eqscale); 
+     line(startfreq+80, space, startfreq+80, space-fftLin.getFreq(freq*1.25+freq*skew)*eqscale);
 
      strokeWeight(1);  
      
-     float outoftune=( (fftLin.getFreq(freq*1.03)+fftLin.getFreq(freq*1.06) )-(fftLin.getFreq(freq*.97)+fftLin.getFreq(freq*.94)) );
+     float outoftune=( ((fftLin.getFreq(freq*1.03)+fftLin.getFreq(freq*1.06) )-(fftLin.getFreq(freq*.97)+fftLin.getFreq(freq*.94)))/(fftLin.getFreq(freq)/50) );
      textSize(20);
      if (!mute) {
-      float threshold=5;  //set the sensitivity of the green dot and red arrows 
+      float threshold=2;  //set the sensitivity of the green dot and red arrows 
       fill(255,100,100);
       if (outoftune>threshold) {triangle(395, 80, 365, 55, 395, 30);}
       if (outoftune<-threshold) {triangle(400, 80, 430, 55, 400, 30);}
